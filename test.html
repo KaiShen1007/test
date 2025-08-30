@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AI Campus Assistant — Q&A Chatbot</title>
+  <style>
+    body {margin:0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background:#f4f6f9; color:#222;}
+    .container {max-width: 800px; margin: 40px auto; padding: 20px;}
+    h1 {font-size: 28px; margin-bottom: 10px; color:#0a4d8c;}
+    .subtitle {color:#555; margin-bottom: 20px;}
+    .chatbox {background: #fff; border:1px solid #ccc; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow:hidden;}
+    .messages {height: 400px; overflow-y: auto; padding: 15px;}
+    .msg {margin: 10px 0; display: flex; flex-direction: column;}
+    .msg.user {align-items: flex-end;}
+    .bubble {padding: 12px 16px; border-radius: 14px; max-width: 70%; line-height: 1.4;}
+    .msg.user .bubble {background: #0a4d8c; color:#fff;}
+    .msg.bot .bubble {background: #e5f3ff; border: 1px solid #b3daff;}
+    .meta {font-size: 12px; color:#888; margin-top: 2px;}
+    .inputbar {display:flex; border-top:1px solid #ddd;}
+    .inputbar input {flex:1; padding:12px; border:0; font-size:15px;}
+    .inputbar button {padding: 0 20px; background:#0a4d8c; color:#fff; border:0; font-weight:600; cursor:pointer;}
+    .toolbar {display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f9fafc; border-bottom:1px solid #ddd;}
+    .toolbar button {background:#fff; border:1px solid #ccc; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:14px; margin-left:6px;}
+    .hint {font-size:13px; color:#666;}
+    footer {margin-top: 16px; font-size:13px; color:#666; text-align:center;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Campus Assistant — Q&A Chatbot</h1>
+    <div class="subtitle">Hi, I am <b>CHUAH KAI SHEN</b>. Ask your questions about university life. This chatbot uses a rule-based AI-like response engine.</div>
+
+    <div class="chatbox">
+      <div class="toolbar">
+        <div class="hint">Examples: library hours, exam registration, Wi‑Fi login, sports complex, counseling</div>
+        <div>
+          <button id="clearBtn">Clear</button>
+          <button id="exportBtn">Export</button>
+        </div>
+      </div>
+      <div id="chat" class="messages"></div>
+      <div class="inputbar">
+        <input id="q" type="text" placeholder="Type your question here..." autofocus />
+        <button id="ask">Ask</button>
+      </div>
+    </div>
+
+    <footer>Conversation is stored only in this session. Powered by a lightweight AI-like engine with fixed FAQs.</footer>
+  </div>
+
+<script>
+(() => {
+  const chatEl = document.getElementById('chat');
+  const input = document.getElementById('q');
+  const askBtn = document.getElementById('ask');
+  const clearBtn = document.getElementById('clearBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  const uniFAQs = [
+    {patterns:['library','perpustakaan','library hour'],answer:`Library Hours:\nMon–Fri: 8:30am–9:30pm\nSat: 9:00am–5:00pm\nSun & Holidays: Closed.`},
+    {patterns:['exam','register exam','exam registration'],answer:`Exam Registration:\nRegister via the Student Portal → Academics → Exam Registration. Opens Week 6 and closes Week 8.`},
+    {patterns:['wifi','eduroam','internet','wi-fi'],answer:`Campus Wi‑Fi (eduroam):\nSSID: eduroam\nUsername: studentID@university.edu\nPassword: your portal password.`},
+    {patterns:['sports','gym','badminton','swimming'],answer:`Sports Complex:\nGym: Mon–Sat 7:00am–10:00pm\nCourt bookings: via Sports App (opens 2 days in advance).`},
+    {patterns:['counsel','counselling','mental health','wellbeing'],answer:`Counseling & Wellness:\nEmail: counseling@university.edu or visit Student Affairs, Level 2. Mon–Fri 9:00am–5:00pm.`},
+    {patterns:['canteen','cafeteria','food'],answer:`Cafeteria:\nMain Cafeteria: 7:30am–8:00pm. Halal and vegetarian options available.`},
+    {patterns:['contact','helpdesk','student affairs','hotline'],answer:`Contacts:\nGeneral Hotline: 03‑1234 5678\nIT Helpdesk: 03‑1234 1111\nStudent Affairs: student.affairs@university.edu`},
+    {patterns:['hostel','dorm','accommodation','stay'],answer:`Hostel Info:\nOn-campus hostel available. Check Student Housing Portal for room booking and fees.`},
+    {patterns:['library book','borrow book','return book'],answer:`Library Borrow/Return:\nBorrow books using student card at kiosk. Return within 14 days or late fee applies.`},
+    {patterns:['transcript','academic record'],answer:`Transcripts:\nRequest official transcripts via the Registrar’s Office. Processing time: 5 working days.`},
+    {patterns:['scholarship','financial aid','loan'],answer:`Scholarships & Aid:\nApply online via Financial Aid Portal. Deadlines announced every semester.`},
+    {patterns:['parking','car park','motorcycle'],answer:`Parking:\nStudents can apply for parking permits at Security Office. Spaces limited.`},
+    {patterns:['clinic','medical','health center'],answer:`Campus Clinic:\nOpen Mon–Fri 9:00am–5:00pm. Services include general consultation and first aid.`},
+    {patterns:['graduation','convocation'],answer:`Graduation Ceremony:\nHeld annually in October. Registration opens 3 months earlier.`},
+    {patterns:['library fine','penalty'],answer:`Library Fines:\nRM0.50 per day for overdue books. Payable via Student Portal.`},
+    {patterns:['lost card','student id'],answer:`Lost Student Card:\nReport immediately to Student Affairs. Replacement fee: RM20.`},
+    {patterns:['it support','computer lab','printing'],answer:`IT Support:\nComputer labs open 8:00am–9:00pm. Printing services available in Block D.`},
+    {patterns:['clubs','societies','activities'],answer:`Student Clubs & Societies:\nOver 50 clubs available. Register during Club Week at start of semester.`},
+    {patterns:['library study room','book room'],answer:`Study Rooms:\nGroup study rooms in library can be reserved online up to 2 hours/day.`},
+    {patterns:['emergency','security','police'],answer:`Emergency:\nCampus Security Hotline: 03-9999 1111. Available 24/7.`},
+    {patterns:['school','which school','what school'],answer:`I am studying at UTAR Kampar.`},
+    {patterns:['hometown','asal','kampung','from where'],answer:`My hometown is from Bukit Mertajam,Penang`}
+  ];
+
+  const norm = s => s.toLowerCase();
+
+  function findAnswer(q){
+    const text = norm(q);
+    for(const item of uniFAQs){
+      if(item.patterns.some(p => text.includes(p))) return item.answer;
+    }
+    return `I could not find a match for: “${q}”. Please rephrase or ask about campus services (library, exams, Wi‑Fi, sports, counseling, cafeteria, housing, etc.).`;
+  }
+
+  const state = JSON.parse(sessionStorage.getItem('assistant_chat')||'[]');
+  state.forEach(renderRow);
+  if(state.length===0) greet();
+
+  function greet(){ push('bot', `Hello, I am CHUAH KAI SHEN. Welcome to AI Campus Assistant. Ask about campus services such as library, Wi‑Fi, exams, sports, counseling, cafeteria, or more.`); }
+
+  function push(role,text){
+    const entry = {role,text,at:Date.now()};
+    state.push(entry);
+    sessionStorage.setItem('assistant_chat', JSON.stringify(state));
+    renderRow(entry);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function renderRow({role,text,at}){
+    const row = document.createElement('div');
+    row.className = `msg ${role}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerText = text;
+    row.appendChild(bubble);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = new Date(at).toLocaleTimeString();
+    row.appendChild(meta);
+    chatEl.appendChild(row);
+  }
+
+  function ask(){
+    const q = input.value.trim();
+    if(!q) return;
+    push('user', q);
+    setTimeout(() => push('bot', findAnswer(q)), 300);
+    input.value='';
+  }
+
+  askBtn.addEventListener('click', ask);
+  input.addEventListener('keydown', e => {if(e.key==='Enter'){e.preventDefault();ask();}});
+  clearBtn.addEventListener('click', ()=>{sessionStorage.removeItem('assistant_chat'); chatEl.innerHTML=''; state.length=0; greet();});
+  exportBtn.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='chat_history.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),500);
+  });
+})();
+</script>
+</body>
+</html>
